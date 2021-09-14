@@ -1,0 +1,26 @@
+@import "../../node_modules/bulma/sass/utilities/_all.sass";
+@import "../../node_modules/bulma/sass/helpers/typography.sass";
+@import "../../node_modules/bulma/sass/form/shared.sass";
+@import "../../node_modules/bulma/sass/form/select.sass";
+@import "../../node_modules/bulma/sass/elements/button.sass";
+@import "../../node_modules/bulma/sass/components/dropdown.sass";
+
+.dropdown,.select {
+    margin-left: 5px;
+    margin-top: 5px;    
+}
+
+.dropdown-menu {
+    width: 300px;
+}
+
+.dropdown-item {
+    cursor: pointer;
+}
+
+.horse-display {
+    line-height: 30px;
+    img {
+        margin: -5px 2px;
+    }
+}

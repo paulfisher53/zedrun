@@ -1,0 +1,44 @@
+@import "../../node_modules/bulma/sass/utilities/_all.sass";
+@import "../../node_modules/bulma/sass/helpers/visibility.sass";
+@import "../../node_modules/bulma/sass/helpers/typography.sass";
+@import "../../node_modules/bulma/sass/elements/table.sass";
+@import "../../node_modules/bulma/sass/elements/button.sass";
+
+.table {
+    margin: 30px auto;
+}
+
+.racing-tag {
+    display: inline-block;
+    color: #f0f8ff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 0.6em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.racing-tag--0 {
+    background: #383c42
+}
+
+.racing-tag--1 {
+    background: #533f64
+}
+
+.racing-tag--2 {
+    background: #573843
+}
+
+.racing-tag--3 {
+    background: #574d42
+}
+
+.racing-tag--4 {
+    background: #374e4a
+}
+
+.racing-tag--5 {
+    background: #36484e
+}

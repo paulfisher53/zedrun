@@ -1,0 +1,21 @@
+{
+    "id": 137,
+    "name": "Main Matic Network",
+    "network": "mainnet",
+    "version": "v1",
+    "explorer": "https://explorer-mainnet.maticvigil.com/",
+    "gateway": "wss://wild-bitter-breeze.matic.quiknode.pro/8da011d58d7e0605b6779377fb345837d22f93aa/",
+    "rpcProvider": "https://wild-bitter-breeze.matic.quiknode.pro/8da011d58d7e0605b6779377fb345837d22f93aa/",
+    "CONTRACT_ADDRESSES": {
+        "ROOT_CHAIN_MANAGER": "0xA0c68C638235ee32657e8f720a23ceC1bFc77C77",
+        "MATIC_WETH": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+        "RACING_ARENA": "0x89aAC1F5cCDd54dd8A09e5c858F19a665E4fA32b",
+        "ROOT_CHAIN_PROXY": "0x86E4Dc95c7FBdBf52e33D563BbDB00823894C287",
+        "CORE": "0xA5F1Ea7DF861952863dF2e8d1312f7305dabf215",
+        "BREEDING": "0x6f9F251551f92cec48C43ba59598fd7b07387F95",
+        "STUD_SERVICE": "0xb6602D1f76A2d6a73FE839Cb3Fc4b7e0D9eC5544",
+        "GOP_FUNDS_RECEIVER_WETH": "0x26d6c8c9ca72af49d4E63e517A1cF0Af5435c78c",
+        "BREEDING_LIMIT": "0xedA1f66f5c765Ac16b4333C53F3F83f781D01C8b"
+    },
+    "checkpointInclusionApi": "https://apis.matic.network/api/v1/matic/block-included"
+}
