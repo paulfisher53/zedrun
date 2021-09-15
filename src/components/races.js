@@ -6,14 +6,14 @@ import style from './races.scss';
 
 import settings from '../settings.json';
 
-function processRace(race,selected){
+function processRace(race, selected) {
     let count = 0;
-    let available = 1;
-    for(let gate in race.gates){
+    let available = race.fee === "0.0" ? 6 : 1;
+    for (let gate in race.gates) {
         count += 1;
-        if(+gate === available)
+        if (+gate === available)
             available += 1;
-        if(selected && race.gates[gate].horse_id === selected.horse_id)
+        if (selected && race.gates[gate].horse_id === selected.horse_id)
             race.selected = true;
     }
     race.registered = count;
@@ -21,12 +21,7 @@ function processRace(race,selected){
 }
 
 function rsv(e) {
-    const t = e.substring(2);
-    return {
-        r: "0x" + t.substring(0, 64),
-        s: "0x" + t.substring(64, 128),
-        v: parseInt(t.substring(128, 130), 16)
-    }
+    const t=e.substring(2),a="0x"+t.substring(0,64),n="0x"+t.substring(64,128),s=parseInt(t.substring(128,130),16);return{r:a,s:n,v:s<2?27+s:s};
 }
 
 export class Races extends LitElement {
@@ -45,13 +40,19 @@ export class Races extends LitElement {
         this.account = null;
         this.contract = contract;
     }
-    
-    async registerHorse(ev) {
+
+    async race(ev) {
+        const race = ev.currentTarget.dataset.id,
+            gate = +ev.currentTarget.dataset.gate;
+
+        this.registerHorse(race, gate);
+
+    }
+
+    async registerHorse(race, gate) {
 
         const e = this.account,
-            horseid = this.selected.horse_id,
-            race = ev.currentTarget.dataset.id,
-            gate = +ev.currentTarget.dataset.gate;
+            horseid = this.selected.horse_id;
 
         let i = this.contract.methods.registerHorse(Web3.utils.toHex(race), horseid, gate).encodeABI();
         let nonce = await this.contract.methods.getNonce(e).call();
@@ -103,7 +104,7 @@ export class Races extends LitElement {
                 "functionSignature": i
             }
         };
-    
+
         const a = [e, JSON.stringify(t)];
         window.ethereum.request({
             method: "eth_signTypedData_v4",
@@ -126,14 +127,18 @@ export class Races extends LitElement {
                     "x-api-key": "qPw8VUbt_.f8043b2b-8451-496e-b29b-f414507ac120"
                 },
                 body: JSON.stringify(A)
-            }).then((p => {
-                if(p.status === 200){
+            }).then(async(p) => {
+                if (p.status === 200) {
                     alert('Done');
-                }else{
+                } else {
                     console.log(p);
-                    alert('Error');
+                    let msg = 'Unknown Error';
+                    let json = await p.json();
+                    if(json && json.log && json.log.indexOf('Racing: race not accepting registrations') !== -1)
+                        msg = 'Race is full';
+                    alert('Error - ' + msg);
                 }
-            })).catch((err => {
+            }).catch((err => {
                 console.log("an error has occured. Logged with Biconomy"),
                     console.log(err);
             }
@@ -164,12 +169,12 @@ export class Races extends LitElement {
             </thead>
             <tbody>
                 ${this.data.map((race) => {
-                    processRace(race,this.selected);
-                    let invalid = (!this.selected || this.selected.class < race.class || (race.class === 0 && this.selected.class !== 0));
-                    let highlight = this.selected && this.selected.class === race.class;
-                    return html`
+            processRace(race, this.selected);
+            let invalid = (!this.selected || this.selected.class < race.class || (race.class === 0 && this.selected.class !== 0));
+            let highlight = this.selected && this.selected.class === race.class;
+            return html`
                     <tr>
-                        <td class="is-hidden-mobile">${race.name}${race.selected?html` <img class="registered-icon d-none d-md-inline-block" src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjIwIiB2aWV3Qm94PSIwIDAgMjAgMjAiIHdpZHRoPSIyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMTIgMmMyLjY1MjE2NDkgMCA1LjE5NTcwNCAxLjA1MzU2ODQgNy4wNzEwNjc4IDIuOTI4OTMyMTkgMS44NzUzNjM4IDEuODc1MzYzNzggMi45Mjg5MzIyIDQuNDE4OTAyOTEgMi45Mjg5MzIyIDcuMDcxMDY3ODFzLTEuMDUzNTY4NCA1LjE5NTcwNC0yLjkyODkzMjIgNy4wNzEwNjc4LTQuNDE4OTAyOSAyLjkyODkzMjItNy4wNzEwNjc4IDIuOTI4OTMyMi01LjE5NTcwNDAzLTEuMDUzNTY4NC03LjA3MTA2NzgxLTIuOTI4OTMyMmMtMS44NzUzNjM3OS0xLjg3NTM2MzgtMi45Mjg5MzIxOS00LjQxODkwMjktMi45Mjg5MzIxOS03LjA3MTA2NzggMC01LjUyMjg0NzUgNC40NzcxNTI1LTEwIDEwLTEwem0wIDJjLTQuNDE4Mjc4IDAtOCAzLjU4MTcyMi04IDhzMy41ODE3MjIgOCA4IDggOC0zLjU4MTcyMiA4LThjMC0yLjEyMTczMTkyLS44NDI4NTQ3LTQuMTU2NTYzMjItMi4zNDMxNDU4LTUuNjU2ODU0MjUtMS41MDAyOTEtMS41MDAyOTEwMy0zLjUzNTEyMjMtMi4zNDMxNDU3NS01LjY1Njg1NDItMi4zNDMxNDU3NXptLTQuNzI5ODU4NjYgNC4wNzAyNTE0Ni40NDc3MzQ3OC40MDk5Nzc5My4xNTg1NDg3LjA1OTcxOTU4LjE3NDM0MjA2LjA4NTU5MDEzLjQwODQ4MDU1LjIwMDcwODUzLjY5MTk4MzU4LjI2NzE0NTkzLjIxNzc3NzgzLjA4ODkxNjMyLjIyODY1NjY0LjA5Mzk3NzQxLjI1ODY3NDEyLjExNzk5Mjc2LjA1NTkwNTA0LjA1MDQxMjM4LjI3MTk3MDQ2LjE1NTUwNDM0LjA3MDUxMDkuMDQxNjc5NTMuMjgyMDQzNC4xODQ3NzkyNC40MTE3ODM0LjA5NTI2NzQ5LjEyMzk5ODQuMDE4NTU3MzEuMTU1NjI3NS4wMjkwNzY0My4zNDI0ODEzLjEyODUxMTkzLjMzMjQwODQuMTQyNTA0Mi4xMDg1ODY3LjAzOTY5NDguMzEyMjYyNC4wODM1NTc2LjA2MTg0ODEuMDA3MDQ1OC4yMDI3NjkxLS4wMDg5MzEzLjUyNjIxMjQtLjAyMzcxNzcuMTAzODUyNC0uMDE0MjkwMSAxLjI5NzUwMDYtLjMwMTU4MTIuMDgwNTgzOC0uMDE1NTgwMi40MTk1Mzk2LS4wMjY1OTU0Ny4wNjcxODY4LjAwMzY3MTc3LjAyNDEzMS4wOTg2NDE1LjA3ODA2NTYuMDI0MDE1NC41NjUwOTQyLjI0NzU5NjIuMzY1NjQ5MS4xMzgwMzg3LjE4MjgyNDYuMjUxMjY4LjE3MjE0NzMuMzE5NjQyMy4wNTU4MDQzLjMxNzI2MDYuMDY1MzczNi41MTk2MDQ3LjA0MTYwMTQuNjMxMTQ3Mi4wMzUyNTU0LjE3MjI3NTQuMDcxNjE4OS4zMTQ0ODE5di4wNjY2ODczbC0uMDA3NzU2Mi42MDY5MzMzLjAwNzc1NjIuMDUwNDEyNHYuMjk1MzI5MmwtLjAxMTE4MS4wMzU0Mjc2LS4wMDQyMzA2LjA1MjE5ODYtLjAyNjM5MTIuMTkzMzEzNy0uMDM1NTU3Ny4xNDE4MDk2LS4wMzkxODM5LjEzMTA5Mi0uMTA1ODY3LjQ3NDQ1Mi4wMjA3NTA0LjI1NjIyOTguMDM0MTQ3NC40MTI3MjY2LjA0NjEzNDIuNDA2ODcxNi4wMzY4NjcxLjExMjMzNjIuMDE4NjM1LjA0OTYxODUtLjA4NjEyMzkuMDQzNTY1MS0uMDU4ODI2Mi4wNTg4NDc1LS4xMDAxMjU1LjIxNjUzNTEtLjAwNTEzNzIuMDc3NjAzMy4wNTczMTUzLjIwNjUxMjEuMDA1NTQwMS4wMjg2Nzk1LS4wMjk1MTM4LjAwODAzODItMS43NTQ0MjEtLjAzMjg0NzUuMDg0MTA5NC0uMTY3NTEyLjA0MjUwOC0uMDQ0NjU2Ni4wNzA1MTA5LS4wNzY4MDk0LjE2NjkwOTItLjI2MjE4NDEuMDkwOTU5LS4zNTg2NDI0LjAzODI3NzQtLjg4NDAyOTR2LS42NDAzNDk3bC0uMDg4MDM3OS0uMjU2NjI2OC0uMTY0MTk1LS4zMTY1MDAxLS4xMTgyNTY4LS43Mzk3OTgyLS43MjczOTk2LjExMTc2MDgtLjYwODAxNjQuMTQwOTk1OC0uMjUyODMxOC4wNzMyMzY5LTEuNjYzNDUxOS4xMjIzNTkyaC0uMjk3NjU2NmwtLjA0OTA1NTQuMDA3MjQ0My4xOTk1NDU4IDEuMDgzMTkxNC0uMDAxMzA5NS4wOTkyMzctLjA0MzExMjQuMjQ4Njg3OC4wMDQ4MzUuMDcwMjU5OC4xMTkzNjQ5IDEuMTI5OTEyMi0uMDQ1MzI4NC4wMzIxNTI4LS4wMzAyMTkuMDQwOTg0OC0uMDc1MDQzNy4yNDExNDU5LjAwODE1OTEuMDU4MjUyMS4wOTA2NTY4LjE0MDYxODcuMDEwODc4OS4wNzU0MjAxLS4xODkzNzIxLjA0Mjg3MDQtLjE5MDM3OTMuMDA2OTQ2Ni0xLjAxOTc0MzkuMDIzNjE4NC0uMTYyNDc3MTkuMDA5OTIzNy4wMDc0NTQtLjAyMjcyNTMuMDkyMzY5MTktLjE1NjM5NzQuMDQwMjkyLS4wNDAzODk1LjA4OTA0NTEtLjA5ODU0MjMuMDc3ODY0MS0uMTI2MTMwMi4wMjAxNDYtLjAzNDQzNTItLjAzMDIxODktLjAzOTY5NDguMDY1Nzc2NS0uMjcwOTE2OS4wMTAwNzMtLjA1NTY3Mi0uMDAxMjA4OC0uNDY2NDEzNy0uMDEwMDcyOS0uMDg5MzEzMy0uMDYxMjQzOC0uNDA0ODg2OS0uMDIyODY1Ni0uMjI3NDUxMS0uMDM1NTU3Ni0uMzc0NTIwMy0uMDIyMjYxMy0uMjM3MDc3MS0uMDA3MzUzMy0uMDQxODc4LS4yODA0MzE3Ny0uOTYwNjEzOS0uMDQ2NTM3MTYtLjA1NTk2OTctLjM0MzEzMDIzLS4yMDUwMjM2LS4wNTYxMDY0OS0uMDU2MzY2Ni0uMTUzNTQ0MTctLjE3NTc0ODYtLjAxODIzMjA5LS4wNzI0NDMuMDAwNzA1MTEtLjE4MTAwODMtLjAxMTM4MjQ3LS4xMzIzODIxLS4wOTM0NzcyNS0uNTA2MTA4NS0uMjIxNTk4NzItLjI4OTgwNDctLjIwNTQ1MTg5LS4zMDE3NDY5LS4yNzAxNTczMi0uMTU3Mzg5OS0uMDU3NDE1OTktLjA1MDQxMjMtLjE4Nzc2MDM0LS4xMjYwMzEtLjI3MDQ2MDI3LS4wOTMxMDQ0LS41MzA0MjQwMS4xMTIyNTcxLS41MTg4NTkxOS4yNTM4NDkyLS4wNTk4MzM1LjA2OTQ2NTloLS4zMzU4MzMxNWwtLjE2MDg2NTQ5LS4xOTM4NDM1LS4wMjk0MTMxLS4wMTUzODE4LS4wODE4OTMzMi0uMTM4NjM0LS4wMDY0NDY3MS0uMDMyMjUyLS4wMDg0NjEzMS0uMTUxOTMxOHYtLjI4MDUxMDJsLjA0NTkzMjc5LS4xNzAzODk5LjAxMzM5NzA3LS4wMzU0Mjc2LjIwMzU3NDkyLS4zODkzMDY2NC4wNTc1MTY3MS0uMDc1NDIwMS4wODc2MzQ5My0uMDg4NTE5MzcuMjIyNzEzNTgtLjI4Nzc4NzIyLjAxNjcyMTE1LS4wNDgxMjk5My0uMDAwOTA2NTctLjEyODUxMTg4LjA3OTI3NDM1LS4xOTA5MzE5My4zMzAzMjM5NC0uNTM5OTQ4MzYtLjA1NjE4Mjg3LS40MTUyMjM2M3oiIGZpbGw9IiNmZmE3MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTIgLTIpIi8+PC9zdmc+"> `:''}</td>
+                        <td class="is-hidden-mobile">${race.name}${race.selected ? html` <img class="registered-icon d-none d-md-inline-block" src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjIwIiB2aWV3Qm94PSIwIDAgMjAgMjAiIHdpZHRoPSIyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMTIgMmMyLjY1MjE2NDkgMCA1LjE5NTcwNCAxLjA1MzU2ODQgNy4wNzEwNjc4IDIuOTI4OTMyMTkgMS44NzUzNjM4IDEuODc1MzYzNzggMi45Mjg5MzIyIDQuNDE4OTAyOTEgMi45Mjg5MzIyIDcuMDcxMDY3ODFzLTEuMDUzNTY4NCA1LjE5NTcwNC0yLjkyODkzMjIgNy4wNzEwNjc4LTQuNDE4OTAyOSAyLjkyODkzMjItNy4wNzEwNjc4IDIuOTI4OTMyMi01LjE5NTcwNDAzLTEuMDUzNTY4NC03LjA3MTA2NzgxLTIuOTI4OTMyMmMtMS44NzUzNjM3OS0xLjg3NTM2MzgtMi45Mjg5MzIxOS00LjQxODkwMjktMi45Mjg5MzIxOS03LjA3MTA2NzggMC01LjUyMjg0NzUgNC40NzcxNTI1LTEwIDEwLTEwem0wIDJjLTQuNDE4Mjc4IDAtOCAzLjU4MTcyMi04IDhzMy41ODE3MjIgOCA4IDggOC0zLjU4MTcyMiA4LThjMC0yLjEyMTczMTkyLS44NDI4NTQ3LTQuMTU2NTYzMjItMi4zNDMxNDU4LTUuNjU2ODU0MjUtMS41MDAyOTEtMS41MDAyOTEwMy0zLjUzNTEyMjMtMi4zNDMxNDU3NS01LjY1Njg1NDItMi4zNDMxNDU3NXptLTQuNzI5ODU4NjYgNC4wNzAyNTE0Ni40NDc3MzQ3OC40MDk5Nzc5My4xNTg1NDg3LjA1OTcxOTU4LjE3NDM0MjA2LjA4NTU5MDEzLjQwODQ4MDU1LjIwMDcwODUzLjY5MTk4MzU4LjI2NzE0NTkzLjIxNzc3NzgzLjA4ODkxNjMyLjIyODY1NjY0LjA5Mzk3NzQxLjI1ODY3NDEyLjExNzk5Mjc2LjA1NTkwNTA0LjA1MDQxMjM4LjI3MTk3MDQ2LjE1NTUwNDM0LjA3MDUxMDkuMDQxNjc5NTMuMjgyMDQzNC4xODQ3NzkyNC40MTE3ODM0LjA5NTI2NzQ5LjEyMzk5ODQuMDE4NTU3MzEuMTU1NjI3NS4wMjkwNzY0My4zNDI0ODEzLjEyODUxMTkzLjMzMjQwODQuMTQyNTA0Mi4xMDg1ODY3LjAzOTY5NDguMzEyMjYyNC4wODM1NTc2LjA2MTg0ODEuMDA3MDQ1OC4yMDI3NjkxLS4wMDg5MzEzLjUyNjIxMjQtLjAyMzcxNzcuMTAzODUyNC0uMDE0MjkwMSAxLjI5NzUwMDYtLjMwMTU4MTIuMDgwNTgzOC0uMDE1NTgwMi40MTk1Mzk2LS4wMjY1OTU0Ny4wNjcxODY4LjAwMzY3MTc3LjAyNDEzMS4wOTg2NDE1LjA3ODA2NTYuMDI0MDE1NC41NjUwOTQyLjI0NzU5NjIuMzY1NjQ5MS4xMzgwMzg3LjE4MjgyNDYuMjUxMjY4LjE3MjE0NzMuMzE5NjQyMy4wNTU4MDQzLjMxNzI2MDYuMDY1MzczNi41MTk2MDQ3LjA0MTYwMTQuNjMxMTQ3Mi4wMzUyNTU0LjE3MjI3NTQuMDcxNjE4OS4zMTQ0ODE5di4wNjY2ODczbC0uMDA3NzU2Mi42MDY5MzMzLjAwNzc1NjIuMDUwNDEyNHYuMjk1MzI5MmwtLjAxMTE4MS4wMzU0Mjc2LS4wMDQyMzA2LjA1MjE5ODYtLjAyNjM5MTIuMTkzMzEzNy0uMDM1NTU3Ny4xNDE4MDk2LS4wMzkxODM5LjEzMTA5Mi0uMTA1ODY3LjQ3NDQ1Mi4wMjA3NTA0LjI1NjIyOTguMDM0MTQ3NC40MTI3MjY2LjA0NjEzNDIuNDA2ODcxNi4wMzY4NjcxLjExMjMzNjIuMDE4NjM1LjA0OTYxODUtLjA4NjEyMzkuMDQzNTY1MS0uMDU4ODI2Mi4wNTg4NDc1LS4xMDAxMjU1LjIxNjUzNTEtLjAwNTEzNzIuMDc3NjAzMy4wNTczMTUzLjIwNjUxMjEuMDA1NTQwMS4wMjg2Nzk1LS4wMjk1MTM4LjAwODAzODItMS43NTQ0MjEtLjAzMjg0NzUuMDg0MTA5NC0uMTY3NTEyLjA0MjUwOC0uMDQ0NjU2Ni4wNzA1MTA5LS4wNzY4MDk0LjE2NjkwOTItLjI2MjE4NDEuMDkwOTU5LS4zNTg2NDI0LjAzODI3NzQtLjg4NDAyOTR2LS42NDAzNDk3bC0uMDg4MDM3OS0uMjU2NjI2OC0uMTY0MTk1LS4zMTY1MDAxLS4xMTgyNTY4LS43Mzk3OTgyLS43MjczOTk2LjExMTc2MDgtLjYwODAxNjQuMTQwOTk1OC0uMjUyODMxOC4wNzMyMzY5LTEuNjYzNDUxOS4xMjIzNTkyaC0uMjk3NjU2NmwtLjA0OTA1NTQuMDA3MjQ0My4xOTk1NDU4IDEuMDgzMTkxNC0uMDAxMzA5NS4wOTkyMzctLjA0MzExMjQuMjQ4Njg3OC4wMDQ4MzUuMDcwMjU5OC4xMTkzNjQ5IDEuMTI5OTEyMi0uMDQ1MzI4NC4wMzIxNTI4LS4wMzAyMTkuMDQwOTg0OC0uMDc1MDQzNy4yNDExNDU5LjAwODE1OTEuMDU4MjUyMS4wOTA2NTY4LjE0MDYxODcuMDEwODc4OS4wNzU0MjAxLS4xODkzNzIxLjA0Mjg3MDQtLjE5MDM3OTMuMDA2OTQ2Ni0xLjAxOTc0MzkuMDIzNjE4NC0uMTYyNDc3MTkuMDA5OTIzNy4wMDc0NTQtLjAyMjcyNTMuMDkyMzY5MTktLjE1NjM5NzQuMDQwMjkyLS4wNDAzODk1LjA4OTA0NTEtLjA5ODU0MjMuMDc3ODY0MS0uMTI2MTMwMi4wMjAxNDYtLjAzNDQzNTItLjAzMDIxODktLjAzOTY5NDguMDY1Nzc2NS0uMjcwOTE2OS4wMTAwNzMtLjA1NTY3Mi0uMDAxMjA4OC0uNDY2NDEzNy0uMDEwMDcyOS0uMDg5MzEzMy0uMDYxMjQzOC0uNDA0ODg2OS0uMDIyODY1Ni0uMjI3NDUxMS0uMDM1NTU3Ni0uMzc0NTIwMy0uMDIyMjYxMy0uMjM3MDc3MS0uMDA3MzUzMy0uMDQxODc4LS4yODA0MzE3Ny0uOTYwNjEzOS0uMDQ2NTM3MTYtLjA1NTk2OTctLjM0MzEzMDIzLS4yMDUwMjM2LS4wNTYxMDY0OS0uMDU2MzY2Ni0uMTUzNTQ0MTctLjE3NTc0ODYtLjAxODIzMjA5LS4wNzI0NDMuMDAwNzA1MTEtLjE4MTAwODMtLjAxMTM4MjQ3LS4xMzIzODIxLS4wOTM0NzcyNS0uNTA2MTA4NS0uMjIxNTk4NzItLjI4OTgwNDctLjIwNTQ1MTg5LS4zMDE3NDY5LS4yNzAxNTczMi0uMTU3Mzg5OS0uMDU3NDE1OTktLjA1MDQxMjMtLjE4Nzc2MDM0LS4xMjYwMzEtLjI3MDQ2MDI3LS4wOTMxMDQ0LS41MzA0MjQwMS4xMTIyNTcxLS41MTg4NTkxOS4yNTM4NDkyLS4wNTk4MzM1LjA2OTQ2NTloLS4zMzU4MzMxNWwtLjE2MDg2NTQ5LS4xOTM4NDM1LS4wMjk0MTMxLS4wMTUzODE4LS4wODE4OTMzMi0uMTM4NjM0LS4wMDY0NDY3MS0uMDMyMjUyLS4wMDg0NjEzMS0uMTUxOTMxOHYtLjI4MDUxMDJsLjA0NTkzMjc5LS4xNzAzODk5LjAxMzM5NzA3LS4wMzU0Mjc2LjIwMzU3NDkyLS4zODkzMDY2NC4wNTc1MTY3MS0uMDc1NDIwMS4wODc2MzQ5My0uMDg4NTE5MzcuMjIyNzEzNTgtLjI4Nzc4NzIyLjAxNjcyMTE1LS4wNDgxMjk5My0uMDAwOTA2NTctLjEyODUxMTg4LjA3OTI3NDM1LS4xOTA5MzE5My4zMzAzMjM5NC0uNTM5OTQ4MzYtLjA1NjE4Mjg3LS40MTUyMjM2M3oiIGZpbGw9IiNmZmE3MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTIgLTIpIi8+PC9zdmc+"> ` : ''}</td>
                         <td><div class="racing-tag racing-tag--${race.class}">Class ${race.class}</div></td>
                         <td>${race.length}m</td>
                         <td style="color:#27b18a;">${race.fee === "0.0" ? html`
@@ -177,26 +182,25 @@ export class Races extends LitElement {
                         ` : html`<strong>$${(race.fee * this.price).toFixed(2)}</strong>`}</td>
                         <td><strong>${race.registered}/12</strong></td>
                         <td>
-                            ${
-                                race.availableGate > 12 || invalid || race.selected ?
-                                    html`
+                            ${race.availableGate > 12 || invalid || race.selected ?
+                    html`
                                     <button class="button is-small is-fullwidth" disabled>
                                         <strong>${race.selected ? 'In Race' : (invalid ? 'Can\'t Race' : 'Race Full')}</strong>
                                     </button>
                                     `
-                                    :
-                                    html`
+                    :
+                    html`
                                     <button data-id="${race.race_id}" data-gate="${race.availableGate}" class=${classMap({
-                                        'button':true, 
-                                        'is-info':!highlight,
-                                        'is-primary': highlight,
-                                        'is-small':true,
-                                        'is-fullwidth':true
-                                    })} @click=${this.registerHorse}>
+                        'button': true,
+                        'is-info': !highlight,
+                        'is-primary': highlight,
+                        'is-small': true,
+                        'is-fullwidth': true
+                    })} @click=${this.race}>
                                         <strong>Gate ${race.availableGate}</strong>
                                     </button>
-                                    `                                
-                            }                            
+                                    `
+                }                            
                         </td>
                     </tr>
                     `;

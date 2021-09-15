@@ -11,6 +11,7 @@ import weth_abi from './contracts/WETH.json';
 import { Horses } from './components/horses';
 
 const ETH_PRICE_URL = 'https://us-central1-zed-production.cloudfunctions.net/eth-price-retrieval-production-price';
+const API_URL = 'https://staging.zoomapps.com.au/partner/q/?e=ZED';
 
 async function fetchJSON(url) {
     let result = await fetch(url);
@@ -37,38 +38,23 @@ async function startApp() {
     nav.account = account;    
     nav.price = price.data.AUD;    
 
-    let horses = new Horses();    
+    let horses = new Horses();       
 
-    setInterval(async () => {
-        
-        let balance = await weth.methods.balanceOf(account).call();
-        nav.balance = Web3.utils.fromWei(balance);
+    fetchJSON(`${API_URL}&m=GetUserHorses&p={account:%22${account}%22}&get=true`).then((data)=>horses.data=data);        
 
-        horses.data = await fetchJSON(`https://api.zed.run/api/v1/horses/get_user_horses?public_address=${account}&offset=0&gen[]=1&gen[]=268&horse_name=&sort_by=created_by_desc`);
-
-    },5000);
+    weth.methods.balanceOf(account).call().then((balance)=>nav.balance = Web3.utils.fromWei(balance));
 
     let races = new Races();
     races.price = price.data.AUD;
     races.contract = racing;
     races.account = account;
-    setInterval(async () => {
-        races.selected = horses.selected;
-        let filters = [];
-        if (horses.filter.class !== '')
-            filters.push(`class=${horses.filter.class}`);
-        const urlfilters = filters.length > 0 ? '&' + filters.join('&') : '';
-        let data = await fetchJSON(`https://racing-api.zed.run/api/v1/races?offset=0&status=open${urlfilters}`);
-        let data2 = await fetchJSON(`https://racing-api.zed.run/api/v1/races?offset=10&status=open${urlfilters}`);
-        let data3 = urlfilters === '' ? await fetchJSON(`https://racing-api.zed.run/api/v1/races?offset=20&status=open${urlfilters}`) : [];
-        let data4 = urlfilters === '' ? await fetchJSON(`https://racing-api.zed.run/api/v1/races?offset=30&status=open${urlfilters}`) : [];
-        let rawdata = data.concat(data2).concat(data3).concat(data4);
-        if (horses.filter.length > 0)
-            rawdata = rawdata.filter((d) => {
-                return d.length === horses.filter.length;
-            });
-        races.data = rawdata;
-    }, 2000);
+
+    getRaceData(horses,races);
+
+    setInterval(async () => {        
+        races.selected = horses.selected;        
+        await getRaceData(horses,races);
+    }, 5000);
 
 
     let s = document.createElement('style');
@@ -79,6 +65,20 @@ async function startApp() {
     document.body.appendChild(horses);
     document.body.appendChild(races);
 
+}
+
+async function getRaceData(horses,races){
+
+    let data = await fetchJSON(`${API_URL}&m=GetRaces&p={offset:0,cl:%22${horses.filter.class}%22}&get=true`);
+    let data2 = data.length === 10 ? await fetchJSON(`${API_URL}&m=GetRaces&p={offset:10,cl:%22${horses.filter.class}%22}&get=true`) : [];
+    let data3 = horses.filter.class === '' && data2.length === 10 ? await fetchJSON(`${API_URL}&m=GetRaces&p={offset:20,cl:%22${horses.filter.class}%22}&get=true`) : [];
+    let data4 = horses.filter.class === '' && data3.length === 10 ? await fetchJSON(`${API_URL}&m=GetRaces&p={offset:30,cl:%22${horses.filter.class}%22}&get=true`) : [];
+    let rawdata = data.concat(data2).concat(data3).concat(data4);
+    if (horses.filter.length > 0)
+        rawdata = rawdata.filter((d) => {
+            return d.length === horses.filter.length;
+        });
+    races.data = rawdata;
 }
 
 window.addEventListener('load', async () => {
