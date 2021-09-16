@@ -11,7 +11,8 @@
 }
 
 .dropdown-menu {
-    width: 300px;
+    min-width: 350px;
+    width: auto;
 }
 
 .dropdown-item {

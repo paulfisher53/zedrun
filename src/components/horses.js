@@ -2,7 +2,6 @@ import { html, LitElement, css, unsafeCSS } from 'lit';
 import { icon } from '@fortawesome/fontawesome-svg-core'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import style from './horses.scss';
-
 export class Horses extends LitElement {
 
     static get properties() {
@@ -49,7 +48,10 @@ export class Horses extends LitElement {
     }
 
     displayHorse(horse){
-        return html`<div class="horse-display"><img src="${horse.img_url}" height="25">&nbsp;&nbsp;<strong>${horse.hash_info.name}${horse.is_on_racing_contract ? ' (Racing)':''}</strong>&nbsp;• Class ${horse.class}&nbsp;• ${horse.genotype} ${horse.bloodline}</div>`;
+        let status = '';
+        if(horse.racing && horse.racing.running_races > 0)
+            status = ' (Racing)';
+        return html`<div class="horse-display"><img src="${horse.img_url}" height="25">&nbsp;&nbsp;<strong>${horse.hash_info.name}${horse.is_on_racing_contract ? ' (Racing)':''}</strong>&nbsp;• Class ${horse.class}&nbsp;• ${horse.genotype} ${horse.bloodline}${status}</div>`;
     }
 
     render() {

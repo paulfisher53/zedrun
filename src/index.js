@@ -50,7 +50,15 @@ async function startApp() {
     races.account = account;
 
     horses.onchange = () => {
+
         getRaceData(horses, races);
+
+        fetchJSON(`${API_URL}&m=GetHorseRaceStatus&p={horseid:${horses.selected.horse_id}}&get=true`).then((data) => {
+            if(data[0]){
+                horses.selected.racing = data[0];
+                horses.requestUpdate();
+            }
+        });
     }
 
     getRaceData(horses, races);
