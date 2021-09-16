@@ -65,7 +65,8 @@ export class Races extends LitElement {
             func);
 
         if (response.status === 200) {
-            this.message = 'Horse entered successfully!'
+            this.message = 'Horse entered successfully!';
+            setTimeout(()=>this.message = '',5000); 
         } else {
             console.log(response);
             let msg = 'Unknown Error';
