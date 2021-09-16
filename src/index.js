@@ -33,28 +33,32 @@ async function startApp() {
     const accounts = await web3.eth.getAccounts();
     const account = accounts[0];
     const price = await fetchJSON(ETH_PRICE_URL);
-    
+
     let nav = new NavBar();
-    nav.account = account;    
-    nav.price = price.data.AUD;    
+    nav.account = account;
+    nav.price = price.data.AUD;
 
-    let horses = new Horses();       
+    let horses = new Horses();
 
-    fetchJSON(`${API_URL}&m=GetUserHorses&p={account:%22${account}%22}&get=true`).then((data)=>horses.data=data);        
+    fetchJSON(`${API_URL}&m=GetUserHorses&p={account:%22${account}%22}&get=true`).then((data) => horses.data = data);
 
-    weth.methods.balanceOf(account).call().then((balance)=>nav.balance = Web3.utils.fromWei(balance));
+    weth.methods.balanceOf(account).call().then((balance) => nav.balance = Web3.utils.fromWei(balance));
 
     let races = new Races();
     races.price = price.data.AUD;
     races.contract = racing;
     races.account = account;
 
-    getRaceData(horses,races);
+    horses.onchange = () => {
+        getRaceData(horses, races);
+    }
 
-    setInterval(async () => {        
-        races.selected = horses.selected;        
-        await getRaceData(horses,races);
-    }, 5000);
+    getRaceData(horses, races);
+
+    setInterval(async () => {
+        races.selected = horses.selected;
+        await getRaceData(horses, races);
+    }, 3000);
 
 
     let s = document.createElement('style');
@@ -67,7 +71,7 @@ async function startApp() {
 
 }
 
-async function getRaceData(horses,races){
+async function getRaceData(horses, races) {
 
     let data = await fetchJSON(`${API_URL}&m=GetRaces&p={offset:0,cl:%22${horses.filter.class}%22}&get=true`);
     let data2 = data.length === 10 ? await fetchJSON(`${API_URL}&m=GetRaces&p={offset:10,cl:%22${horses.filter.class}%22}&get=true`) : [];

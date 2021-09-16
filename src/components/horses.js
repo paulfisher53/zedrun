@@ -20,6 +20,8 @@ export class Horses extends LitElement {
             class: "",
             length: 0
         }
+        this.onchange = function(){            
+        }
     }
 
     toggle(e){
@@ -33,14 +35,17 @@ export class Horses extends LitElement {
                 h = horse;
         });
         this.selected = h;
+        this.onchange();
     }
 
     setClassFilter(e){        
         this.filter.class = e.currentTarget.value;
+        this.onchange();
     }
 
     setLengthFilter(e){        
         this.filter.length = +e.currentTarget.value;
+        this.onchange();
     }
 
     displayHorse(horse){

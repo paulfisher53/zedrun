@@ -17,5 +17,10 @@
         "GOP_FUNDS_RECEIVER_WETH": "0x26d6c8c9ca72af49d4E63e517A1cF0Af5435c78c",
         "BREEDING_LIMIT": "0xedA1f66f5c765Ac16b4333C53F3F83f781D01C8b"
     },
-    "checkpointInclusionApi": "https://apis.matic.network/api/v1/matic/block-included"
+    "checkpointInclusionApi": "https://apis.matic.network/api/v1/matic/block-included",
+    "biconomy": {
+        "url": "https://api.biconomy.io/api/v2/meta-tx/native",
+        "appid": "9e40565f-b896-4882-9cca-7ed1a39caeda",
+        "apikey": "qPw8VUbt_.f8043b2b-8451-496e-b29b-f414507ac120"
+    }
 }
